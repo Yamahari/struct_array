@@ -71,9 +71,9 @@ namespace soa
 	template <typename T>
 	struct to_tuple<1U, T>
 	{
-		static constexpr auto make = []<typename T0>(T0&& x) noexcept
+		static constexpr auto make = [](auto&& x) noexcept
 		{
-			auto&& [_1] = std::forward<T0>(x);
+			auto&& [_1] = std::forward<decltype(x)>(x);
 			return std::make_tuple(std::forward<decltype(_1)>(_1));
 		};
 
@@ -83,9 +83,9 @@ namespace soa
 	template <typename T>
 	struct to_tuple<2U, T>
 	{
-		static constexpr auto make = []<typename T0>(T0&& x) noexcept
+		static constexpr auto make = [](auto&& x) noexcept
 		{
-			auto&& [_1, _2] = std::forward<T0>(x);
+			auto&& [_1, _2] = std::forward<decltype(x)>(x);
 			return std::make_tuple(std::forward<decltype(_1)>(_1),
 			                       std::forward<decltype(_2)>(_2));
 		};
