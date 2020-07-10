@@ -29,10 +29,10 @@ namespace soa
 			template <typename U>
 			struct struct_array_iterator
 			{
-				using value_type = value_type;
+				using value_type = typename soa::vectorize<T>::value_type;
 				using difference_type = std::ptrdiff_t;
-				using reference = reference;
-				using pointer = pointer;
+				using reference = typename soa::vectorize<T>::reference;
+				using pointer = typename soa::vectorize<T>::pointer;
 				using iterator_category = std::random_access_iterator_tag;
 
 				U iterators;
@@ -42,14 +42,14 @@ namespace soa
 				struct_array_iterator(struct_array_iterator&&) = default;
 
 				template <typename...Args>
-				requires (sizeof...(Is) == sizeof...(Args)) && (... && std::is_constructible_v<std::tuple_element_t<Is, U>, Args>)
+					requires (sizeof...(Is) == sizeof...(Args)) && (... && std::is_constructible_v<std::tuple_element_t<Is, U>, Args>)
 				struct_array_iterator(Args&&...args)
 					: iterators{std::forward<Args>(args)...}
 				{
 				}
 
 				template <typename V>
-				requires (... && std::is_constructible_v<std::tuple_element_t<Is, U>, std::tuple_element_t<Is, V>>)
+					requires (... && std::is_constructible_v<std::tuple_element_t<Is, U>, std::tuple_element_t<Is, V>>)
 				struct_array_iterator(const struct_array_iterator<V>& that)
 					: iterators{std::get<Is>(that.iterators)...}
 				{
@@ -345,7 +345,7 @@ namespace soa
 			}
 
 			template <typename U>
-			requires std::is_same_v<value_type, std::decay_t<U>>
+				requires std::is_same_v<value_type, std::decay_t<U>>
 			auto insert(const const_iterator pos, U&& value) -> iterator
 			{
 				return {
@@ -360,7 +360,7 @@ namespace soa
 			}
 
 			template <typename U>
-			requires std::is_same_v<T, std::decay_t<U>>
+				requires std::is_same_v<T, std::decay_t<U>>
 			auto insert(const const_iterator pos, U&& value) -> iterator
 			{
 				return insert(pos, make_to_tuple<T>(std::forward<decltype(value)>(value)));
@@ -368,7 +368,7 @@ namespace soa
 
 		private:
 			template <typename U>
-			requires(std::tuple_size_v<std::decay_t<U>> == sizeof...(Is))
+				requires(std::tuple_size_v<std::decay_t<U>> == sizeof...(Is))
 			auto emplace_impl(const const_iterator pos, U&& u) -> iterator
 			{
 				return {
@@ -384,7 +384,7 @@ namespace soa
 
 		public:
 			template <typename ...Args>
-			requires (sizeof...(Is) == sizeof...(Args))
+				requires (sizeof...(Is) == sizeof...(Args))
 			auto emplace(const const_iterator pos, Args&&...args) -> iterator
 			{
 				return emplace_impl(pos, std::forward_as_tuple(std::forward<Args>(args)...));
@@ -411,14 +411,15 @@ namespace soa
 			}
 
 			template <typename U>
-			auto push_back(U&& value) -> std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>
+				requires std::is_same_v<T, std::decay_t<U>>
+			void push_back(U&& value)
 			{
 				push_back(std::move(make_to_tuple<T>(std::forward<decltype(value)>(value))));
 			}
 
 		private:
 			template <typename U>
-			requires(std::tuple_size_v<std::decay_t<U>> == sizeof...(Is))
+				requires(std::tuple_size_v<std::decay_t<U>> == sizeof...(Is))
 			auto emplace_back_impl(U&& u) -> reference
 			{
 				return {
