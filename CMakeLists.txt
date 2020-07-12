@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17.3)
-project(struct_array VERSION 0.1.0)
+project(struct_array VERSION 1.0.0)
 
 include(CTest)
 enable_testing()
