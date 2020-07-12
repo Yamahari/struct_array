@@ -6,6 +6,7 @@
 #include <tuple>
 #include <utility>
 
+#include "tuple_wrapper.h"
 #include "vectorize.h"
 
 namespace soa
@@ -13,26 +14,26 @@ namespace soa
 	namespace impl
 	{
 		template <typename T, typename>
-		struct struct_array;
+		struct struct_array_impl;
 
 		template <typename T, std::size_t... Is>
-		struct struct_array<T, std::index_sequence<Is...>>
+		struct struct_array_impl<T, std::index_sequence<Is...>>
 		{
-			using value_type = typename soa::vectorize<T>::value_type;
-			using size_type = typename soa::vectorize<T>::size_type;
-			using difference_type = typename soa::vectorize<T>::difference_type;
-			using reference = typename soa::vectorize<T>::reference;
-			using const_reference = typename soa::vectorize<T>::const_reference;
-			using pointer = typename soa::vectorize<T>::pointer;
-			using const_pointer = typename soa::vectorize<T>::const_pointer;
+			using value_type = typename vectorize<T>::value_type;
+			using size_type = typename vectorize<T>::size_type;
+			using difference_type = typename vectorize<T>::difference_type;
+			using reference = typename vectorize<T>::reference;
+			using const_reference = typename vectorize<T>::const_reference;
+			using pointer = typename vectorize<T>::pointer;
+			using const_pointer = typename vectorize<T>::const_pointer;
 
 			template <typename U>
 			struct struct_array_iterator
 			{
-				using value_type = typename soa::vectorize<T>::value_type;
+				using value_type = tuple_wrapper<typename vectorize<T>::value_type>;
 				using difference_type = std::ptrdiff_t;
-				using reference = typename soa::vectorize<T>::reference;
-				using pointer = typename soa::vectorize<T>::pointer;
+				using reference = tuple_wrapper<typename vectorize<T>::reference>;
+				using pointer = typename vectorize<T>::pointer;
 				using iterator_category = std::random_access_iterator_tag;
 
 				U iterators;
@@ -117,7 +118,7 @@ namespace soa
 
 				auto operator*() noexcept -> reference
 				{
-					return {*(std::get<Is>(iterators))...};
+					return {std::make_tuple(std::ref(*(std::get<Is>(iterators)))...)};
 				}
 
 				auto operator->() noexcept -> pointer
@@ -434,7 +435,7 @@ namespace soa
 
 		public:
 			template <typename...Args>
-			requires (sizeof...(Is) == sizeof...(Args))
+				requires (sizeof...(Is) == sizeof...(Args))
 			auto emplace_back(Args&&... args) -> reference
 			{
 				return emplace_back_impl(std::forward_as_tuple(std::forward<Args>(args)...));
@@ -456,19 +457,21 @@ namespace soa
 			}
 
 			// TODO fix noexcept specifier
-			void swap(struct_array& other) noexcept
+			void swap(struct_array_impl& other) noexcept
 			{
 				(..., std::get<Is>(components).swap(std::get<Is>(other.components)));
 			}
 		};
 	} // namespace impl
 
-	template <typename T>
-	struct struct_array final
-		: impl::struct_array<T, decltype(std::make_index_sequence<std::tuple_size_v<to_tuple_t<T>>>{})>
-	{
-	};
-}
+	template<typename T>
+	using struct_array = impl::struct_array_impl<T, decltype(std::make_index_sequence<std::tuple_size_v<to_tuple_t<T>>>{})>;
 
+	template<typename T>
+	void swap(struct_array<T>& lhs, struct_array<T>& rhs) noexcept(noexcept(lhs.swap(rhs)))
+	{
+		lhs.swap(rhs);
+	}
+} // namespace soa
 
 #endif // SOA_STRUCT_ARRAY_H
