@@ -107,4 +107,4 @@ internally as `std::tuple<std::vector<T0>, std::vector<T1>, ... , std::vector<TN
 and provides the interface of `std::vector`.
 Currently supports PODs of up to size 8, but that can be extended easily by providing 
 the appropriate specializations for `to_tuple` and `max_bind` and updating the value 
-of max_bindings to N + 1. (look at `to_tuple.h` and `bind.h`)
+of `max_bindings` to N + 1. (look at `to_tuple.h` and `bind.h`)
