@@ -5,158 +5,84 @@
 #include <tuple>
 #include <utility>
 
+#include <boost/preprocessor.hpp>
+
 #include "bind.h"
 
-namespace soa 
+namespace soa
 {
-    namespace impl {
-        template <std::size_t N, typename T>
-        struct to_tuple_impl;
+namespace impl
+{
+template <std::size_t N, typename T>
+struct to_tuple_impl;
 
-        template <typename T>
-        struct to_tuple_impl<0U, T>
-        {
-            static constexpr auto make = [](auto&& x) noexcept
-            {
-                return std::make_tuple();
-            };
+template <typename T>
+struct to_tuple_impl<0U, T>
+{
+	static constexpr auto make = [](auto &&) noexcept
+	{
+		return std::make_tuple();
+	};
 
-            using type = decltype(make(std::declval<T>()));
-        };
+	using type = decltype(make(std::declval<T>()));
+};
 
-        template <typename T>
-        struct to_tuple_impl<1U, T>
-        {
-            static constexpr auto make = [](auto&& x) noexcept
-            {
-                auto&& [_1] = std::forward<decltype(x)>(x);
-                return std::make_tuple(std::forward<decltype(_1)>(_1));
-            };
+#define SOA_IDENTIFIER(z, i, text) BOOST_PP_COMMA_IF(i) BOOST_PP_CAT(text, i)
+#define SOA_IDENTIFIER_LIST(n) BOOST_PP_REPEAT(n, SOA_IDENTIFIER, _)
+#define SOA_FORWARD(z, data, text) std::forward<decltype(text)>(text)
+#define SOA_FORWARD_IDENTIFIER_LIST(...)      \
+  BOOST_PP_LIST_ENUM(BOOST_PP_LIST_TRANSFORM( \
+      SOA_FORWARD, 0, BOOST_PP_VARIADIC_TO_LIST(__VA_ARGS__)))
+#define SOA_TO_TUPLE_IMPL(i, ...)                                       \
+  template <typename T>                                                 \
+  struct to_tuple_impl<i, T> {                                          \
+    static constexpr auto make = [](auto &&x) noexcept {                \
+      auto &&[__VA_ARGS__] = std::forward<decltype(x)>(x);              \
+      return std::make_tuple(SOA_FORWARD_IDENTIFIER_LIST(__VA_ARGS__)); \
+    };                                                                  \
+    using type = decltype(make(std::declval<T>()));                     \
+  };
 
-            using type = decltype(make(std::declval<T>()));
-        };
+#define SOA_TO_TUPLE(z, i, data) SOA_TO_TUPLE_IMPL(i, SOA_IDENTIFIER_LIST(i))
 
-        template <typename T>
-        struct to_tuple_impl<2U, T>
-        {
-            static constexpr auto make = [](auto&& x) noexcept
-            {
-                auto&& [_1, _2] = std::forward<decltype(x)>(x);
-                return std::make_tuple(std::forward<decltype(_1)>(_1),
-                                    std::forward<decltype(_2)>(_2));
-            };
+BOOST_PP_REPEAT_FROM_TO(1, SOA_MAX_BINDINGS, SOA_TO_TUPLE, 0)
 
-            using type = decltype(make(std::declval<T>()));
-        };
+#undef SOA_TO_TUPLE
+#undef SOA_TO_TUPLE_IMPL
+#undef SOA_FORWARD_IDENTIFIER_LIST
+#undef SOA_IDENTIFIER_LIST
+#undef SOA_IDENTIFIER
+} // namespace impl
 
-        template <typename T>
-        struct to_tuple_impl<3U, T>
-        {
-            static constexpr auto make = [](auto&& x) noexcept
-            {
-                auto&& [_1, _2, _3] = std::forward<decltype(x)>(x);
-                return std::make_tuple(std::forward<decltype(_1)>(_1),
-                                    std::forward<decltype(_2)>(_2),
-                                    std::forward<decltype(_3)>(_3));
-            };
+template <typename T>
+using to_tuple = impl::to_tuple_impl<max_bind_v<T>, T>;
 
-            using type = decltype(make(std::declval<T>()));
-        };
+template <typename T>
+using to_tuple_t = typename to_tuple<T>::type;
 
-        template <typename T>
-        struct to_tuple_impl<4U, T>
-        {
-            static constexpr auto make = [](auto&& x) noexcept
-            {
-                auto&& [_1, _2, _3, _4] = std::forward<decltype(x)>(x);
-                return std::make_tuple(std::forward<decltype(_1)>(_1),
-                                    std::forward<decltype(_2)>(_2),
-                                    std::forward<decltype(_3)>(_3),
-                                    std::forward<decltype(_4)>(_4));
-            };
+template <typename T>
+inline static constexpr auto make_to_tuple = to_tuple<T>::make;
+} // namespace soa
 
-            using type = decltype(make(std::declval<T>()));
-        };
+namespace soa
+{
+namespace impl
+{
+template <typename T, typename Tuple, std::size_t... I>
+constexpr T make_from_tuple_impl(Tuple &&t, std::index_sequence<I...>)
+{
+	return T{std::get<I>(std::forward<Tuple>(t))...};
+}
+} // namespace impl
 
-        template <typename T>
-        struct to_tuple_impl<5U, T>
-        {
-            static constexpr auto make = [](auto&& x) noexcept
-            {
-                auto&& [_1, _2, _3, _4, _5] = std::forward<decltype(x)>(x);
-                return std::make_tuple(std::forward<decltype(_1)>(_1),
-                                    std::forward<decltype(_2)>(_2),
-                                    std::forward<decltype(_3)>(_3),
-                                    std::forward<decltype(_4)>(_4),
-                                    std::forward<decltype(_5)>(_5));
-            };
-
-            using type = decltype(make(std::declval<T>()));
-        };
-
-        template <typename T>
-        struct to_tuple_impl<6U, T>
-        {
-            static constexpr auto make = [](auto&& x) noexcept
-            {
-                auto&& [_1, _2, _3, _4, _5, _6] = std::forward<decltype(x)>(x);
-                return std::make_tuple(std::forward<decltype(_1)>(_1),
-                                    std::forward<decltype(_2)>(_2),
-                                    std::forward<decltype(_3)>(_3),
-                                    std::forward<decltype(_4)>(_4),
-                                    std::forward<decltype(_5)>(_5),
-                                    std::forward<decltype(_6)>(_6));
-            };
-
-            using type = decltype(make(std::declval<T>()));
-        };
-
-        template <typename T>
-        struct to_tuple_impl<7U, T>
-        {
-            static constexpr auto make = [](auto&& x) noexcept
-            {
-                auto&& [_1, _2, _3, _4, _5, _6, _7] = std::forward<decltype(x)>(x);
-                return std::make_tuple(std::forward<decltype(_1)>(_1),
-                                    std::forward<decltype(_2)>(_2),
-                                    std::forward<decltype(_3)>(_3),
-                                    std::forward<decltype(_4)>(_4),
-                                    std::forward<decltype(_5)>(_5),
-                                    std::forward<decltype(_6)>(_6),
-                                    std::forward<decltype(_7)>(_7));
-            };
-
-            using type = decltype(make(std::declval<T>()));
-        };
-
-        template <typename T>
-        struct to_tuple_impl<8U, T>
-        {
-            static constexpr auto make = [](auto&& x) noexcept
-            {
-                auto&& [_1, _2, _3, _4, _5, _6, _7, _8] = std::forward<decltype(x)>(x);
-                return std::make_tuple(std::forward<decltype(_1)>(_1),
-                                    std::forward<decltype(_2)>(_2),
-                                    std::forward<decltype(_3)>(_3),
-                                    std::forward<decltype(_4)>(_4),
-                                    std::forward<decltype(_5)>(_5),
-                                    std::forward<decltype(_6)>(_6),
-                                    std::forward<decltype(_7)>(_7),
-                                    std::forward<decltype(_8)>(_8));
-            };
-
-            using type = decltype(make(std::declval<T>()));
-        };
-    } // namespace impl
-
-    template<typename T>
-    using to_tuple = impl::to_tuple_impl<max_bind_v<T>, T>;
-
-	template <typename T>
-	using to_tuple_t = typename to_tuple<T>::type;
-
-	template <typename T>
-	inline static constexpr auto make_to_tuple = to_tuple<T>::make;
+template <typename T, typename Tuple>
+constexpr T make_from_tuple(Tuple &&t)
+{
+	return impl::make_from_tuple_impl<T>(
+		std::forward<Tuple>(t),
+		std::make_index_sequence<
+			std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
+}
 } // namespace soa
 
 #endif // SOA_TO_TUPLE_H
